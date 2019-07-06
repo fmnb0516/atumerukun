@@ -1,0 +1,22 @@
+{
+  "name": "atumerukun",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "express": "^4.16.4",
+    "fs-extra": "^7.0.1",
+    "node-uuid": "^1.4.8",
+    "request": "^2.88.0",
+    "sqlite3": "^4.0.4"
+  },
+  "devDependencies": {
+    "mocha": "^6.1.4"
+  }
+}
