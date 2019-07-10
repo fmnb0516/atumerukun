@@ -12,7 +12,7 @@ const scheduler = require("./modules/lib/scheduler");
 const httpclient = require("./modules/lib/http-client");
 const application = require("./modules/lib/application");
 
-const baseDir = process.argv.length >= 3 ? process.cwd() + "/" + process.argv[2] : process.cwd();
+const baseDir = process.argv.length >= 3 ? process.argv[2] : process.cwd();
 const moduleDir = baseDir;
 
 logger.info("application loading now");
