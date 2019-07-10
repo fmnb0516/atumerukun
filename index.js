@@ -19,7 +19,12 @@ logger.info("application loading now");
 logger.info("    -baseDir : " + baseDir);
 logger.info("    -moduleDir :" + moduleDir);
 
+
+
 const run = async () => {
+	const configure = await fileSystem.readFile(baseDir + "/configure.json", 'utf8')
+		.then(text => JSON.parse(text));
+	
 	const handlerManager = new application.HandlerManager(moduleDir +"/modules/plugins/"+ p);
 
 	const webApp = express();
@@ -33,7 +38,7 @@ const run = async () => {
 
 	const context = {
 		baseDir : baseDir,
-		repo : application.createRepository(baseDir, {}),
+		repo : application.createRepository(baseDir, configure.database),
 		httpclient : httpclient,
 		fileSystem : fileSystem,
 		cheerio  : cheerio,
@@ -67,7 +72,7 @@ const run = async () => {
 		plugins.push(pluginData);
 	}
 
-	webApp.listen(3000, () => logger.info('Web App Server Listening on port 3000'));
+	webApp.listen(configure.webserver.port, () => logger.info('Web App Server Listening on port 3000'));
 	
 	logger.info("application start");
 	

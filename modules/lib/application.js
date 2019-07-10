@@ -254,7 +254,7 @@ class Repository {
 				return null;
 			}
 			
-			const result = pageValues[0];
+			const result = JSON.parse(JSON.stringify(pageResults[0]));
 			const map = {};
 			
 			pageValues.forEach(v => {
@@ -355,18 +355,13 @@ class DatabasePersistenceContainer extends PersistenceContainer {
 	addPageResult(url, data, typeHint) {
 		const page_values = [];
 		var sort = 0;
-
-		var typeHintMap = {};
-		typeHint.forEach((e) => {
-			typeHintMap[e.hintkey] = typeHintMap.hintvalue;
-		})
 		
 		Object.keys(data).forEach(key => {
 			data[key].forEach(val => {
 				page_values.push({
 					data_key : key,
 					data_value : val,
-					data_type : typeHintMap[key] !== undefined ? typeHintMap[key] : 0,
+					data_type : typeHint[key] !== undefined ? typeHint[key] : 0,
 					sort : ++sort
 				});
 			});
@@ -394,18 +389,7 @@ module.exports.HandlerManager = HandlerManager;
 module.exports.WebInstaller = WebInstaller;
 
 module.exports.createRepository = (baseDir, configure) => {
-	/*
-	const file = baseDir + "/db/sqlite3.db";
-	const db = database.createDatabase("sqlite3", {dbfile : file});
-	*/
-	const db = database.createDatabase("mysql", {
-		host: 'localhost',
-		port: 3306,
-		user: 'node',
-		password: 'password',
-		dbname: 'node'
-	});
-	
+	const db = database.createDatabase(configure.type, configure.configure);
 	db.on("trace", function(sql) {
 		logger.info(sql);
 	});
@@ -414,7 +398,7 @@ module.exports.createRepository = (baseDir, configure) => {
 		db.run('CREATE TABLE IF NOT EXISTS web_scraping (id integer primary key auto_increment, name varchar(255) unique not null, schedule varchar(255) not null, target_url varchar(255) not null, description text, status integer not null default 0)');
 		db.run('CREATE TABLE IF NOT EXISTS page_handler (id integer primary key auto_increment, web_scraping_id integer not null, name varchar(255) not null, handler_type varchar(255) not null, description text, configure text, sort integer not null)');
 		db.run('CREATE TABLE IF NOT EXISTS page_result (id integer primary key auto_increment, web_scraping_id integer not null, url varchar(255) unique not null, create_at datetime not null)');
-		db.run('CREATE TABLE IF NOT EXISTS page_value (id integer primary key auto_increment, page_result_id integer not null, data_key varchar(255) not null, data_value text, data_type integer not null, sort integer not null)');
+		db.run('CREATE TABLE IF NOT EXISTS page_value (id integer primary key auto_increment, page_result_id integer not null, data_key varchar(255) not null, data_value text, data_type varchar(255) not null, sort integer not null)');
 	});
 	
 	return new Repository(db);
