@@ -22,10 +22,12 @@ const wget = (url) => {
 			request(options, (error, response, buffer) => {
 				if(error) {
 					reject(error);
+					return;
 				}
 				
 				if(response.statusCode !== 200) {
 					reject("error status code : "+ response.statusCode);
+					return;
 				}
 				
 				resolve({

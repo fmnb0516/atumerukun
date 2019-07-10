@@ -190,7 +190,7 @@ class Repository {
 	updateWebscraping(id, json) {
 		const parameter1 = [json.name, json.schedule, json.target_url, json.description, json.status, id];
 		
-		return this.db.updateQuery("update web_scraping SET name=?, schedule=?, target_url=?, description=?, status=? WHERE id = ?", parameter)
+		return this.db.updateQuery("update web_scraping SET name=?, schedule=?, target_url=?, description=?, status=? WHERE id = ?", parameter1)
 			.then(() => id)
 			.then(id => {
 				return this.db.deleteQuery( "DELETE  FROM page_handler WHERE web_scraping_id = ?", [id])
