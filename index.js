@@ -1,6 +1,11 @@
+#!/usr/bin/env node
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const pathUtil = require('path');
+const cheerio = require('cheerio');
+const urlObj = require('url');
+const uuid = require('node-uuid');
 const logger = require("./modules/lib/logger").instance("SYSTEM");
 const fileSystem = require("./modules/lib/filesystem");
 const scheduler = require("./modules/lib/scheduler");
@@ -31,6 +36,9 @@ const run = async () => {
 		repo : application.createRepository(baseDir, {}),
 		httpclient : httpclient,
 		fileSystem : fileSystem,
+		cheerio  : cheerio,
+		urlObj : urlObj,
+		uuid : uuid,
 		plugins : plugins
 	};
 

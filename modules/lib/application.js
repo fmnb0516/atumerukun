@@ -1,7 +1,7 @@
 const scheduler = require("./scheduler");
 const cronParser = require('./cron');
+const database = require('./database');
 const logger = require("./logger").instance("APPLICATION");
-const sqlite3 = require('sqlite3');
 
 class HandlerManager {
 	constructor(baseDir) {
@@ -62,8 +62,7 @@ class SimpleTask extends scheduler.Task {
 	};
 	
 	is(now) {
-		//return this.cron.match(now);
-		return true;
+		return this.cron.match(now);
 	};
 	
 	async invoke() {
@@ -166,127 +165,50 @@ class Repository {
 	};
 	
 	createWebscraping(json) {
-		return new Promise((resolve, reject) => {
-			const parameter1 = [json.name, json.schedule, json.target_url, json.description, json.status];
-			
-			this.db.run("insert into web_scraping (name, schedule, target_url, description, status) values (?, ?, ?, ?, ?)", parameter1, function(err){
-				if (err) {
-					reject(err);
-				} else {
-					resolve(this.lastID);
-				}
-			});
-		}).then(id => {
-			var sortNo = 0;
-			
-			const promisses = json.pageHandlers.map(h => {
-				return new Promise((resolve, reject) => {
-					const sort = ++sortNo;
-					const parameter2 = [id, h.handler_type, h.name, h.description, JSON.stringify(h.configure), sort];
-					
-					this.db.run("insert into page_handler (web_scraping_id, handler_type, name, description, configure, sort) values (?,?,?,?,?,?)", parameter2, function(err){
-						if (err) {
-							reject(err);
-						} else {
-							resolve(this.lastID);
-						}
-					});
-				});
-			})
-			
-			return Promise.all(promisses).then(values => id);
-		});
+		const parameter1 = [json.name, json.schedule, json.target_url, json.description, json.status];
 		
+		return this.db.insertQuery("insert into web_scraping (name, schedule, target_url, description, status) values (?, ?, ?, ?, ?)", parameter1)
+			.then(id => {
+				var sortNo = 0;
+				const promisses = json.pageHandlers.map(h => {
+					const sort = ++sortNo;
+					const parameter2 = [id, h.handler_type, h.name, h.description, JSON.stringify(h.configure), sort];				
+					return this.db.insertQuery("insert into page_handler (web_scraping_id, handler_type, name, description, configure, sort) values (?,?,?,?,?,?)", parameter2);
+				})
+				return Promise.all(promisses).then(values => id);
+			});
 	};
 	
 	removeWebscraping(id) {
-		const p1 = new Promise((resolve, reject) => {
-			this.db.all( "DELETE FROM web_scraping WHERE id = ?", [id], (err) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(id);
-				}
-			});
-		});
-		const p2 = new Promise((resolve, reject) => {
-			this.db.all( "DELETE  FROM page_handler WHERE web_scraping_id = ?", [id], (err) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(id);
-				}
-			});
-		});
-		
+		const p1 =this.db.deleteQuery("DELETE FROM web_scraping WHERE id = ?", [id]);
+		const p2 = this.db.deleteQuery( "DELETE  FROM page_handler WHERE web_scraping_id = ?", [id]);
 		return Promise.all([p1, p2]).then(values => {
 			return true;
 		});
 	};
 	
 	updateWebscraping(id, json) {
-		return new Promise((resolve, reject) => {
-			const parameter1 = [json.name, json.schedule, json.target_url, json.description, json.status, id];
-			
-			this.db.run("update web_scraping SET name=?, schedule=?, target_url=?, description=?, status=? WHERE id = ?", parameter1, function(err){
-				if (err) {
-					reject(err);
-				} else {
-					resolve(id);
-				}
-			});
-		}).then(id => {
-			return new Promise((resolve, reject) => {
-				this.db.all( "DELETE  FROM page_handler WHERE web_scraping_id = ?", [id], (err) => {
-					if (err) {
-						reject(err);
-					} else {
-						resolve(id);
-					}
-				});
-			});
-		}).then(id => {
-			var sortNo = 0;
-			const promisses = json.pageHandlers.map(h => {
-				return new Promise((resolve, reject) => {
+		const parameter1 = [json.name, json.schedule, json.target_url, json.description, json.status, id];
+		
+		return this.db.updateQuery("update web_scraping SET name=?, schedule=?, target_url=?, description=?, status=? WHERE id = ?", parameter)
+			.then(() => id)
+			.then(id => {
+				return this.db.deleteQuery( "DELETE  FROM page_handler WHERE web_scraping_id = ?", [id])
+					.then(() => id);
+			}).then(id => {
+				var sortNo = 0;
+				const promisses = json.pageHandlers.map(h => {
 					const sort = ++sortNo;
 					const parameter2 = [id, h.handler_type, h.name, h.description, JSON.stringify(h.configure), sort];
-					
-					this.db.run("insert into page_handler (web_scraping_id, handler_type, name, description, configure, sort) values (?,?,?,?,?,?)", parameter2, function(err){
-						if (err) {
-							reject(err);
-						} else {
-							resolve(this.lastID);
-						}
-					});
+					return this.db.insertQuery("insert into page_handler (web_scraping_id, handler_type, name, description, configure, sort) values (?,?,?,?,?,?)", parameter2);
 				});
-			})
-			
-			return Promise.all(promisses).then(values => id);
-		});
-			
+				return Promise.all(promisses).then(values => id);
+			});
 	};
 	
 	getWebscraping(id) {
-		const p1 = new Promise((resolve, reject) => {
-			this.db.all( "SELECT id, name, schedule, target_url, description, status FROM web_scraping WHERE id = ?", [id], (err, rows) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(rows);
-				}
-			});
-		});
-		
-		const p2 = new Promise((resolve, reject) => {
-			this.db.all( "SELECT id, web_scraping_id, handler_type, name, description, configure, sort FROM page_handler WHERE web_scraping_id = ? ORDER BY sort ASC", [id], (err, rows) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(rows);
-				}
-			});
-		});
+		const p1 = this.db.selectQuery( "SELECT id, name, schedule, target_url, description, status FROM web_scraping WHERE id = ?", [id]);
+		const p2 = this.db.selectQuery( "SELECT id, web_scraping_id, handler_type, name, description, configure, sort FROM page_handler WHERE web_scraping_id = ? ORDER BY sort ASC", [id]);
 		
 		return Promise.all([p1, p2]).then(values => {
 			const webScraping = values[0];
@@ -312,51 +234,17 @@ class Repository {
 		const limitSql = limit !== undefined ? " LIMIT " + limit : "";
 		const offsetSql = offset !== undefined ? " OFFSET " + offset : "";
 		const sql = baseSql + limitSql + offsetSql;
-		
-		return new Promise((resolve, reject) => {
-			this.db.all(sql, (err, rows) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(rows);
-				}
-			});
-		});
+		return this.db.selectQuery(sql, []);
 	};
 	
 	findPageResults(urls) {
 		const inquery = "(" + urls.map(u => "'" + u + "'").join(",") + ")";
-		return new Promise((resolve, reject) => {
-			this.db.all( "SELECT id, web_scraping_id, url, create_at FROM page_result WHERE url IN " + inquery, [], (err, rows) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(rows);
-				}
-			});
-		});
+		return this.db.selectQuery( "SELECT id, web_scraping_id, url, create_at FROM page_result WHERE url IN " + inquery, []);
 	};
 
 	getPageResult(id) {
-		const p1 = new Promise((resolve, reject) => {
-			this.db.all( "SELECT id, web_scraping_id, url, create_at FROM page_result WHERE id = ?", [id], (err, rows) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(rows);
-				}
-			});
-		});
-		
-		const p2 = new Promise((resolve, reject) => {
-			this.db.all( "SELECT id, page_result_id, data_key, data_value, data_type, sort FROM page_value WHERE page_result_id = ? ORDER BY sort ASC", [id], (err, rows) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(rows);
-				}
-			});
-		});
+		const p1 = this.db.selectQuery( "SELECT id, web_scraping_id, url, create_at FROM page_result WHERE id = ?", [id]);
+		const p2 = this.db.selectQuery( "SELECT id, page_result_id, data_key, data_value, data_type, sort FROM page_value WHERE page_result_id = ? ORDER BY sort ASC", [id]);
 		
 		return Promise.all([p1, p2]).then(values => {
 			const pageResults = values[0];
@@ -391,31 +279,15 @@ class Repository {
 		const parameter1 = [json.web_scraping_id, json.url, json.create_at];
 		const page_values = json.page_values;
 		
-		return new Promise((resolve, reject) => {	
-			this.db.run("insert into page_result (web_scraping_id, url, create_at) values (?, ?, ?)", parameter1, function(err){
-				if (err) {
-					reject(err);
-				} else {
-					resolve(this.lastID);
-				}
-			});
-		}).then(id => {
-			const promisses = page_values.map(h => {
-				return new Promise((resolve, reject) => {
-					const parameter2 = [id, h.data_key, h.data_value, h.data_type, h.sort];
-					
-					this.db.run("insert into page_value (page_result_id, data_key, data_value, data_type, sort) values (?,?,?,?,?)", parameter2, function(err){
-						if (err) {
-							reject(err);
-						} else {
-							resolve(this.lastID);
-						}
+		return this.db.insertQuery("insert into page_result (web_scraping_id, url, create_at) values (?, ?, ?)", parameter1
+				.then(id => {
+					const promisses = page_values.map(h => {
+						const parameter2 = [id, h.data_key, h.data_value, h.data_type, h.sort];
+						return this.db.insertQuery("insert into page_value (page_result_id, data_key, data_value, data_type, sort) values (?,?,?,?,?)", parameter2);
 					});
+					
+					return Promise.all(promisses).then(values => id);
 				});
-			})
-			
-			return Promise.all(promisses).then(values => id);
-		});
 	};
 	
 	allPageResult(web_scraping_id, offset, limit) {
@@ -428,36 +300,12 @@ class Repository {
 		const offsetSql = offset !== undefined ? " OFFSET " + offset : "";
 		const sql = baseSql + where + limitSql + offsetSql;
 		
-		return new Promise((resolve, reject) => {
-			this.db.all(sql, parameter, (err, rows) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(rows);
-				}
-			});
-		});
+		return this.db.selectQuery(sql, parameter);
 	};
 	
 	removePageResult(id) {
-		const p1 = new Promise((resolve, reject) => {
-			this.db.all( "DELETE FROM page_result WHERE id = ?", [id], (err) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(id);
-				}
-			});
-		});
-		const p2 = new Promise((resolve, reject) => {
-			this.db.all( "DELETE  FROM page_value WHERE page_result_id = ?", [id], (err) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(id);
-				}
-			});
-		});
+		const p1 = this.db.deleteQuery( "DELETE FROM page_result WHERE id = ?", [id]);
+		const p2 = this.db.deleteQuery( "DELETE  FROM page_value WHERE page_result_id = ?", [id]);
 		
 		return Promise.all([p1, p2]).then(values => {
 			return true;
@@ -547,8 +395,7 @@ module.exports.WebInstaller = WebInstaller;
 
 module.exports.createRepository = (baseDir, configure) => {
 	const file = baseDir + "/db/sqlite3.db";
-	
-	const db = new sqlite3.Database(file);
+	const db = database.createDatabase("sqlite3", {dbfile : file});
 	
 	db.on("trace", function(sql) {
 		logger.info(sql);
