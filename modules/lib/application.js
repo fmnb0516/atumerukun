@@ -298,8 +298,7 @@ class Repository {
 		
 		const limitSql = limit !== undefined ? " LIMIT " + limit : "";
 		const offsetSql = offset !== undefined ? " OFFSET " + offset : "";
-		const sql = baseSql + where + limitSql + offsetSql;
-		
+		const sql = baseSql + where + " ORDER BY create_at DESC " + limitSql + offsetSql;
 		return this.db.selectQuery(sql, parameter);
 	};
 	
@@ -354,9 +353,9 @@ class DatabasePersistenceContainer extends PersistenceContainer {
 	
 	addPageResult(url, data, typeHint) {
 		const page_values = [];
-		var sort = 0;
 		
 		Object.keys(data).forEach(key => {
+			var sort = 0;
 			data[key].forEach(val => {
 				page_values.push({
 					data_key : key,
