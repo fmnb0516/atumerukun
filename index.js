@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+process.env.TZ = "Asia/Tokyo";
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const pathUtil = require('path');
