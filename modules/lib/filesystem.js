@@ -11,6 +11,7 @@ module.exports = {
 		mkdirs : util.promisify(fs.mkdirs),
 		copy : util.promisify(fs.copy),
 		access: util.promisify(fs.access),
+		rename: util.promisify(fs.rename),
 		
 		exist : async (path) => {
 			return util.promisify(fs.stat)(path)

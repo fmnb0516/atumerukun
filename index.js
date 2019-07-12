@@ -48,6 +48,7 @@ const run = async () => {
 		fileSystem : fileSystem,
 		cheerio  : cheerio,
 		urlObj : urlObj,
+		pathUtil: pathUtil,
 		uuid : uuid,
 		plugins : plugins
 	};
