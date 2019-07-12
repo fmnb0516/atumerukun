@@ -3,6 +3,7 @@
 process.env.TZ = "Asia/Tokyo";
 
 const express = require('express');
+const multer = require('multer');
 const bodyParser = require('body-parser');
 const pathUtil = require('path');
 const cheerio = require('cheerio');
@@ -32,7 +33,9 @@ const run = async () => {
 	const webApp = express();
 	webApp.use(bodyParser.urlencoded({extended: true}));
 	webApp.use(bodyParser.json());
-	
+
+	const uploader = multer({dest: baseDir + '/storage/' + configure.webserver.upload}); 
+
 	webApp.use('/storage', express.static(baseDir + '/storage'));
 
 	const pluginPaths = await fileSystem.readdir(moduleDir+"/modules/plugins");
@@ -58,7 +61,7 @@ const run = async () => {
 		pluginData.web = false;
 		pluginData.handler = false;
 
-		const webInstaller = new application.WebInstaller(webApp, express, moduleDir +"/modules/plugins/"+ p);
+		const webInstaller = new application.WebInstaller(webApp, express, uploader, moduleDir +"/modules/plugins/"+ p);
 		if(await fileSystem.exist(moduleDir +"/modules/plugins/"+ p + "/web.js") === true) {
 			require(moduleDir +"/modules/plugins/"+ p + "/web.js")(webInstaller, context,
 				require("./modules/lib/logger").instance(p));

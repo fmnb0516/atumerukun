@@ -19,9 +19,10 @@ class HandlerManager {
 }
 
 class WebInstaller {
-	constructor(webapp,express, baseDir) {
+	constructor(webapp,express, uploader, baseDir) {
 		this.webapp = webapp;
 		this.express = express;
+		this.uploader = uploader;
 		this.baseDir = baseDir;
 	};
 
@@ -47,6 +48,11 @@ class WebInstaller {
 
 	delete(path, callback) {
 		this.webapp.delete(path, callback);
+		return this;
+	};
+
+	upload(path, key, callback) {
+		this.webapp.post(path, this.uploader.single(key), callback);
 		return this;
 	};
 };
