@@ -269,6 +269,8 @@ class Repository {
 				}
 				
 				map[v.data_key].push({
+					pid : id,
+					id : v.id,
 					data_key : v.data_key,
 					data_value : v.data_value,
 					data_type : v.data_type,
