@@ -297,7 +297,7 @@ class Repository {
 					return Promise.all(promisses).then(values => id);
 				});
 	};
-	
+
 	allPageResult(web_scraping_id, offset, limit) {
 		const baseSql = "SELECT web_scraping.id as web_scraping_id, name, page_result.id as id , web_scraping_id, url, create_at FROM page_result INNER JOIN web_scraping ON page_result.web_scraping_id = web_scraping.id";
 		
@@ -315,6 +315,22 @@ class Repository {
 		const p2 = this.db.deleteQuery( "DELETE  FROM page_value WHERE page_result_id = ?", [id]);
 		
 		return Promise.all([p1, p2]).then(values => {
+			return true;
+		});
+	};
+
+	createPageValue(page_result_id, json) {
+		const parameter = [page_result_id, json.data_key, json.data_value, json.data_type, json.sort];
+		return this.db.insertQuery("insert into page_value (page_result_id, data_key, data_value, data_type, sort) values (?,?,?,?,?)", parameter);
+	};
+
+	updatePageValue(page_result_id, page_value_id, json) {
+		const parameter = [json.data_key, json.data_value, json.data_type, json.sort, page_result_id, page_value_id];
+		return this.db.updateQuery("update page_value SET data_key=?, data_value=?, data_type=?, sort=? WHERE page_result_id = ? AND id = ?", parameter)
+	};
+	
+	removePageValue(id) {
+		return this.db.deleteQuery( "DELETE  FROM page_value WHERE id = ?", [id]).then(values => {
 			return true;
 		});
 	};
