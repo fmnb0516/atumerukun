@@ -5,10 +5,6 @@ process.env.TZ = "Asia/Tokyo";
 const express = require('express');
 const multer = require('multer');
 const bodyParser = require('body-parser');
-const pathUtil = require('path');
-const cheerio = require('cheerio');
-const urlObj = require('url');
-const uuid = require('node-uuid');
 const logger = require("./modules/lib/logger").instance("SYSTEM");
 const fileSystem = require("./modules/lib/filesystem");
 const scheduler = require("./modules/lib/scheduler");
@@ -22,7 +18,9 @@ logger.info("application loading now");
 logger.info("    -baseDir : " + baseDir);
 logger.info("    -moduleDir :" + moduleDir);
 
-
+const externalFunc = (name) => {
+	return require(name);
+};
 
 const run = async () => {
 	const configure = await fileSystem.readFile(baseDir + "/configure.json", 'utf8')
@@ -46,11 +44,8 @@ const run = async () => {
 		repo : application.createRepository(baseDir, configure.database),
 		httpclient : httpclient,
 		fileSystem : fileSystem,
-		cheerio  : cheerio,
-		urlObj : urlObj,
-		pathUtil: pathUtil,
-		uuid : uuid,
-		plugins : plugins
+		plugins : plugins,
+		external : externalFunc
 	};
 
 	for(var i=0; i<pluginPaths.length; i++) {
