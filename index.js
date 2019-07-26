@@ -45,7 +45,8 @@ const run = async () => {
 		httpclient : httpclient,
 		fileSystem : fileSystem,
 		plugins : plugins,
-		external : externalFunc
+		external : externalFunc,
+		configure : configure
 	};
 
 	for(var i=0; i<pluginPaths.length; i++) {
