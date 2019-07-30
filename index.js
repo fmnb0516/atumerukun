@@ -26,14 +26,11 @@ const run = async () => {
 	const configure = await fileSystem.readFile(baseDir + "/configure.json", 'utf8')
 		.then(text => JSON.parse(text));
 	
-	const handlerManager = new application.HandlerManager(moduleDir +"/modules/plugins/"+ p);
-
 	const webApp = express();
+	const pageProcessInvokers = {};
+
 	webApp.use(bodyParser.urlencoded({extended: true}));
 	webApp.use(bodyParser.json());
-
-	const uploader = multer({dest: baseDir + '/storage/' + configure.webserver.upload}); 
-
 	webApp.use('/storage', express.static(baseDir + '/storage'));
 
 	const pluginPaths = await fileSystem.readdir(moduleDir+"/modules/plugins");
@@ -55,30 +52,25 @@ const run = async () => {
 
 		pluginData.name = p;
 		pluginData.dir = moduleDir +"/modules/plugins/"+ p;
-		pluginData.web = false;
-		pluginData.handler = false;
 
-		const webInstaller = new application.WebInstaller(webApp, express, uploader, moduleDir +"/modules/plugins/"+ p);
-		if(await fileSystem.exist(moduleDir +"/modules/plugins/"+ p + "/web.js") === true) {
-			require(moduleDir +"/modules/plugins/"+ p + "/web.js")(webInstaller, context,
-				require("./modules/lib/logger").instance(p));
-			pluginData.web = true;
+		const pageProcessInstaller = new application.PageProcessInstaller(pageProcessInvokers, moduleDir +"/modules/plugins/"+ p);
+		const webApiInstaller = new application.WebApiInstaller(webApp, express, moduleDir +"/modules/plugins/"+ p);
+
+		if(await fileSystem.exist(moduleDir +"/modules/plugins/"+ p + "/index.js") === true) {
+			const d = require(moduleDir +"/modules/plugins/"+ p + "/index.js")({
+				context : context,
+				logger : require("./modules/lib/logger").instance(p),
+				webApiInstaller : webApiInstaller,
+				pageProcessInstaller : pageProcessInstaller
+			});
+			pluginData.context = d;
 		}
-
-		if(await fileSystem.exist(moduleDir +"/modules/plugins/"+ p + "/handler.js") === true) {
-			require(moduleDir +"/modules/plugins/"+ p + "/handler.js")(handlerManager, context,
-				require("./modules/lib/logger").instance(p));
-			pluginData.handler = true;
-		}
-
 		plugins.push(pluginData);
 	}
 
 	webApp.listen(configure.webserver.port, () => logger.info('Web App Server Listening on port 3000'));
-	
 	logger.info("application start");
-	
-	const pooling = scheduler.instance(new application.TaskResolver(context, handlerManager.getInvokers()));
+	const pooling = scheduler.instance(new application.TaskResolver(context, pageProcessInvokers));
 
 	webApp.get('/system/shutdown', (req, res) => {
 		pooling.stop();
@@ -86,7 +78,6 @@ const run = async () => {
 	});
 
 	logger.info("    application stop -> request to http://localhost:3000/system/shutdown");
-
 	await pooling.start();
 
 };

@@ -3,26 +3,22 @@ const cronParser = require('./cron');
 const database = require('./database');
 const logger = require("./logger").instance("APPLICATION");
 
-class HandlerManager {
-	constructor(baseDir) {
+class PageProcessInstaller {
+	constructor(pageProcessInvokers, baseDir) {
 		this.baseDir = baseDir;
-		this.invokers = {};
+		this.pageProcessInvokers = pageProcessInvokers;
 	};
 
 	install(name, invoker) {
-		this.invokers[name] = invoker;
+		this.pageProcessInvokers[name] = invoker;
 	};
 
-	getInvokers() {
-		return this.invokers;
-	};
 }
 
-class WebInstaller {
-	constructor(webapp,express, uploader, baseDir) {
+class WebApiInstaller {
+	constructor(webapp,express, baseDir) {
 		this.webapp = webapp;
 		this.express = express;
-		this.uploader = uploader;
 		this.baseDir = baseDir;
 	};
 
@@ -48,11 +44,6 @@ class WebInstaller {
 
 	delete(path, callback) {
 		this.webapp.delete(path, callback);
-		return this;
-	};
-
-	upload(path, key, callback) {
-		this.webapp.post(path, this.uploader.single(key), callback);
 		return this;
 	};
 };
@@ -407,9 +398,8 @@ class DatabasePersistenceContainer extends PersistenceContainer {
 	};
 };
 
-module.exports.HandlerManager = HandlerManager;
-
-module.exports.WebInstaller = WebInstaller;
+module.exports.PageProcessInstaller = PageProcessInstaller;
+module.exports.WebApiInstaller = WebApiInstaller;
 
 module.exports.createRepository = (baseDir, configure) => {
 	const db = database.createDatabase(configure.type, configure.configure);
