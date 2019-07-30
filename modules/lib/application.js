@@ -13,37 +13,66 @@ class PageProcessInstaller {
 		this.pageProcessInvokers[name] = invoker;
 	};
 
+};
+
+class EventInstaller {
+
+	constructor() {
+		this.events = {};
+	};
+
+	on(name, callback) {
+		if(this.events[name] === undefined) {
+			this.events[name] = [];
+		}
+		this.events[name].push(callback);
+	};
+
+	raise(name, ctx) {
+		const callbacks = this.events[name] ? this.events[name] : [];
+
+		for(var i=0; i<callbacks[i]; i++) {
+			const result = callbacks[i]({
+				name : name,
+				context : ctx
+			});
+
+			if(result === false) {
+				break;
+			}
+		}
+	};
 }
 
 class WebApiInstaller {
-	constructor(webapp,express, baseDir) {
+	constructor(webapp,express, baseDir, name) {
 		this.webapp = webapp;
 		this.express = express;
 		this.baseDir = baseDir;
+		this.name = name;
 	};
 
 	resource(path, dir) {
-		console.log(this.baseDir +"/"+ dir);
-		this.webapp.use(path, this.express.static(this.baseDir +"/"+ dir));
+		this.webapp.use(this.name + path, this.express.static(this.baseDir +"/"+ dir));
 	};
 
 	get(path, callback) {
-		this.webapp.get(path, callback);
+		this.webapp.get(this.name + path, callback);
 		return this;
 	};
 
 	put(path, callback) {
-		this.webapp.put(path, callback);
+		this.webapp.put(this.name + path, callback);
 		return this;
 	};
 
 	post(path, callback) {
-		this.webapp.post(path, callback);
+		this.webapp.post(this.name + path, callback);
 		return this;
 	};
 
 	delete(path, callback) {
-		this.webapp.delete(path, callback);
+		this.webapp.delete(this.name + path, callback);
 		return this;
 	};
 };
@@ -398,6 +427,7 @@ class DatabasePersistenceContainer extends PersistenceContainer {
 	};
 };
 
+module.exports.EventInstaller = EventInstaller;
 module.exports.PageProcessInstaller = PageProcessInstaller;
 module.exports.WebApiInstaller = WebApiInstaller;
 

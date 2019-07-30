@@ -41,10 +41,11 @@ const run = async () => {
 		repo : application.createRepository(baseDir, configure.database),
 		httpclient : httpclient,
 		fileSystem : fileSystem,
-		plugins : plugins,
 		external : externalFunc,
 		configure : configure
 	};
+
+	const event = new application.EventInstaller();
 
 	for(var i=0; i<pluginPaths.length; i++) {
 		const pluginData = {};
@@ -54,27 +55,37 @@ const run = async () => {
 		pluginData.dir = moduleDir +"/modules/plugins/"+ p;
 
 		const pageProcessInstaller = new application.PageProcessInstaller(pageProcessInvokers, moduleDir +"/modules/plugins/"+ p);
-		const webApiInstaller = new application.WebApiInstaller(webApp, express, moduleDir +"/modules/plugins/"+ p);
+		const webApiInstaller = new application.WebApiInstaller(webApp, express, moduleDir +"/modules/plugins/"+ p, p);
 
 		if(await fileSystem.exist(moduleDir +"/modules/plugins/"+ p + "/index.js") === true) {
 			const d = require(moduleDir +"/modules/plugins/"+ p + "/index.js")({
 				context : context,
 				logger : require("./modules/lib/logger").instance(p),
 				webApiInstaller : webApiInstaller,
-				pageProcessInstaller : pageProcessInstaller
+				pageProcessInstaller : pageProcessInstaller,
+				event : event,
+				plugins : pluginPaths
 			});
 			pluginData.context = d;
 		}
 		plugins.push(pluginData);
 	}
 
+	event.raise("system.initialized", plugins);
+
 	webApp.listen(configure.webserver.port, () => logger.info('Web App Server Listening on port 3000'));
 	logger.info("application start");
 	const pooling = scheduler.instance(new application.TaskResolver(context, pageProcessInvokers));
 
 	webApp.get('/system/shutdown', (req, res) => {
+		event.raise("system.shutdown", plugins);
+
 		pooling.stop();
 		res.send("ok");
+	});
+
+	webApp.get('/system/plugins', (req, res) => {
+		res.json({status:200, data : plugins});
 	});
 
 	logger.info("    application stop -> request to http://localhost:3000/system/shutdown");
