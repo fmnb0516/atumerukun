@@ -32,8 +32,7 @@ class EventInstaller {
 
 	raise(name, ctx) {
 		const callbacks = this.events[name] ? this.events[name] : [];
-
-		for(var i=0; i<callbacks[i]; i++) {
+		for(var i=0; i<callbacks.length; i++) {
 			const result = callbacks[i]({
 				name : name,
 				context : ctx
