@@ -59,7 +59,7 @@ const run = async () => {
 
 		logger.info("initialize plugin : " + p);
 		if(await fileSystem.exist(moduleDir +"/modules/plugins/"+ p + "/index.js") === true) {
-			const d = require(moduleDir +"/modules/plugins/"+ p + "/index.js")({
+			const d = await require(moduleDir +"/modules/plugins/"+ p + "/index.js")({
 				core : context,
 				logger : require("./modules/lib/logger").instance(p),
 				webApiInstaller : webApiInstaller,
