@@ -10,6 +10,7 @@ class PageProcessInstaller {
 	};
 
 	install(name, invoker) {
+		logger.info("---- install page processor : " + name);
 		this.pageProcessInvokers[name] = invoker;
 	};
 
@@ -22,6 +23,7 @@ class EventInstaller {
 	};
 
 	on(name, callback) {
+		logger.info("---- install event : " + name);
 		if(this.events[name] === undefined) {
 			this.events[name] = [];
 		}
@@ -53,26 +55,36 @@ class WebApiInstaller {
 	};
 
 	resource(path, dir) {
-		this.webapp.use(this.name + path, this.express.static(this.baseDir +"/"+ dir));
+		const url = "/" + this.name + path;
+		logger.info("---- dispatch resource request : " + url);
+		this.webapp.use(url, this.express.static(this.baseDir +"/"+ dir));
 	};
 
 	get(path, callback) {
-		this.webapp.get(this.name + path, callback);
+		const url = "/" + this.name + path;
+		logger.info("---- dispatch get request : " + url);
+		this.webapp.get(url, callback);
 		return this;
 	};
 
 	put(path, callback) {
-		this.webapp.put(this.name + path, callback);
+		const url = "/" + this.name + path;
+		logger.info("---- dispatch put request : " + url);
+		this.webapp.put(url, callback);
 		return this;
 	};
 
 	post(path, callback) {
-		this.webapp.post(this.name + path, callback);
+		const url = "/" + this.name + path;
+		logger.info("---- dispatch post request : " + url);
+		this.webapp.post(url, callback);
 		return this;
 	};
 
 	delete(path, callback) {
-		this.webapp.delete(this.name + path, callback);
+		const url = "/" + this.name + path;
+		logger.info("---- dispatch delete request : " + url);
+		this.webapp.delete(url, callback);
 		return this;
 	};
 };

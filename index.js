@@ -57,6 +57,7 @@ const run = async () => {
 		const pageProcessInstaller = new application.PageProcessInstaller(pageProcessInvokers, moduleDir +"/modules/plugins/"+ p);
 		const webApiInstaller = new application.WebApiInstaller(webApp, express, moduleDir +"/modules/plugins/"+ p, p);
 
+		logger.info("initialize plugin : " + p);
 		if(await fileSystem.exist(moduleDir +"/modules/plugins/"+ p + "/index.js") === true) {
 			const d = require(moduleDir +"/modules/plugins/"+ p + "/index.js")({
 				context : context,
@@ -64,7 +65,8 @@ const run = async () => {
 				webApiInstaller : webApiInstaller,
 				pageProcessInstaller : pageProcessInstaller,
 				event : event,
-				plugins : pluginPaths
+				plugins : pluginPaths,
+				dir :  moduleDir +"/modules/plugins/"+ p
 			});
 			pluginData.context = d;
 		}
@@ -79,7 +81,6 @@ const run = async () => {
 
 	webApp.get('/system/shutdown', (req, res) => {
 		event.raise("system.shutdown", plugins);
-
 		pooling.stop();
 		res.send("ok");
 	});
