@@ -60,7 +60,7 @@ const run = async () => {
 		logger.info("initialize plugin : " + p);
 		if(await fileSystem.exist(moduleDir +"/modules/plugins/"+ p + "/index.js") === true) {
 			const d = require(moduleDir +"/modules/plugins/"+ p + "/index.js")({
-				context : context,
+				core : context,
 				logger : require("./modules/lib/logger").instance(p),
 				webApiInstaller : webApiInstaller,
 				pageProcessInstaller : pageProcessInstaller,
