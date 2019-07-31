@@ -86,7 +86,6 @@ const run = async () => {
 	]));
 
 	webApp.get('/system/shutdown', (req, res) => {
-		event.raise("system.shutdown", plugins);
 		pooling.stop();
 		res.send("ok");
 	});
@@ -96,9 +95,18 @@ const run = async () => {
 	});
 
 	logger.info("    application stop -> request to http://localhost:3000/system/shutdown");
+
+	process.on("exit", function() {
+		event.raise("system.exit");
+	});
+	
 	await pooling.start();
 
 };
+
+process.on("SIGINT", function () {
+	process.exit(0);
+});
 
 run()
 	.then(() => logger.info("application end"))
