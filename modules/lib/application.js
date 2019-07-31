@@ -13,7 +13,24 @@ class PageProcessInstaller {
 		logger.info("---- install page processor : " + name);
 		this.pageProcessInvokers[name] = invoker;
 	};
+};
 
+class CronTaskInstaller {
+
+	constructor() {
+		this.tasks = [];
+	};
+
+	install(name, schedule, invoker) {
+		const cron = cronParser(schedule);
+		this.tasks.push(new BasicTask(name, cron, invoker));
+
+		logger.info("---- install task : " + name + ", schedule=" + schedule);
+	};
+	
+	getTaskResolver() {
+		return new BasicTaskResolver(this.tasks);
+	};
 };
 
 class EventInstaller {
@@ -88,48 +105,6 @@ class WebApiInstaller {
 	};
 };
 
-class SimpleTask extends scheduler.Task {
-	constructor(id, name, url, cron, context, invokers) {
-		super(name, context);
-		this.cron = cron;
-		this.id = id;
-		this.context = context;
-		this.invokers = invokers;
-		this.url = url;
-	};
-	
-	is(now) {
-		return this.cron.match(now);
-	};
-	
-	async invoke() {
-		logger.info("start task :" + this.id);
-		const scraping = await this.context.repo.getWebscraping(this.id);
-		const handlers = scraping.pageHandlers;
-		if(handlers.length === 0) {
-			return;
-		}
-
-		const plugins = handlers.map(h => {
-			return {
-				handler : this.invokers[h.handler_type],
-				configure : h.configure
-			}
-		});
-
-		const persistence = new DatabasePersistenceContainer(this.id, this.context.repo);
-		const chain = new HandlerChain(plugins, 0, {
-			baseDir : this.context.baseDir,
-			persistence : persistence
-		}, null);
-
-		await chain.proceed({}, this.url);
-		await persistence.commitResult();
-
-		logger.info("finish task :" + this.id);
-	};
-};
-
 class PageResult {
 	constructor(data, parent) {
 		this.data = data;
@@ -180,7 +155,65 @@ class HandlerChain {
 	};
 };
 
-class SimpleTaskResolver extends scheduler.TaskResolver {
+class CrawlerTask extends scheduler.Task {
+	constructor(id, name, url, cron, context, invokers) {
+		super(name, context);
+		this.cron = cron;
+		this.id = id;
+		this.context = context;
+		this.invokers = invokers;
+		this.url = url;
+	};
+	
+	is(now) {
+		return this.cron.match(now);
+	};
+	
+	async invoke() {
+		logger.info("start task :" + this.id);
+		const scraping = await this.context.repo.getWebscraping(this.id);
+		const handlers = scraping.pageHandlers;
+		if(handlers.length === 0) {
+			return;
+		}
+
+		const plugins = handlers.map(h => {
+			return {
+				handler : this.invokers[h.handler_type],
+				configure : h.configure
+			}
+		});
+
+		const persistence = new DatabasePersistenceContainer(this.id, this.context.repo);
+		const chain = new HandlerChain(plugins, 0, {
+			baseDir : this.context.baseDir,
+			persistence : persistence
+		}, null);
+
+		await chain.proceed({}, this.url);
+		await persistence.commitResult();
+
+		logger.info("finish task :" + this.id);
+	};
+};
+
+class BasicTask extends scheduler.Task {
+	constructor(name, cron, invoker) {
+		super(name);
+		this.cron = cron;
+		this.invoker = invoker;
+	};
+	
+	is(now) {
+		return this.cron.match(now);
+	};
+	
+	async invoke() {
+		await this.invoker();
+	};
+};
+
+class CrawlerTaskResolver extends scheduler.TaskResolver {
 	constructor(context, invokers) {
 		super();
 		this.context = context;
@@ -191,9 +224,40 @@ class SimpleTaskResolver extends scheduler.TaskResolver {
 		const entries = await this.context.repo.allWebscraping();
         return entries.filter(item => item.status === 0).map(item => {
 			const cron = cronParser(item.schedule);
-			return new SimpleTask(item.id, item.name, item.target_url, cron, this.context, this.invokers);
+			return new CrawlerTask(item.id, item.name, item.target_url, cron, this.context, this.invokers);
 		});
 	};
+};
+
+class BasicTaskResolver extends scheduler.TaskResolver {
+	constructor(tasks) {
+		super();
+		this.tasks = tasks;
+	};
+
+	async getTasks() {
+		return this.tasks;
+	};
+}
+
+class CombineTaskResolver extends scheduler.TaskResolver {
+	constructor(resolvers) {
+		super();
+		this.resolvers = resolvers;
+	}
+
+	async getTasks() {
+		const futures = [];
+		const tasks = [];
+
+		for(var i=0; i<this.resolvers.length; i++) {
+			const f = this.resolvers[i].getTasks()
+				.then(t => Array.prototype.push.apply(tasks, t));
+			futures.push(f);
+		}
+		return Promise.all(futures)
+			.then(() => tasks);
+	}
 };
 
 class Repository {
@@ -441,6 +505,7 @@ class DatabasePersistenceContainer extends PersistenceContainer {
 module.exports.EventInstaller = EventInstaller;
 module.exports.PageProcessInstaller = PageProcessInstaller;
 module.exports.WebApiInstaller = WebApiInstaller;
+module.exports.CronTaskInstaller = CronTaskInstaller;
 
 module.exports.createRepository = (baseDir, configure) => {
 	const db = database.createDatabase(configure.type, configure.configure);
@@ -458,4 +523,5 @@ module.exports.createRepository = (baseDir, configure) => {
 	return new Repository(db);
 };
 
-module.exports.TaskResolver = SimpleTaskResolver;
+module.exports.CrawlerTaskResolver = CrawlerTaskResolver;
+module.exports.CombineTaskResolver = CombineTaskResolver;

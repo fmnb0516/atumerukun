@@ -46,6 +46,7 @@ const run = async () => {
 	};
 
 	const event = new application.EventInstaller();
+	const taskInstaller = new application.CronTaskInstaller();
 
 	for(var i=0; i<pluginPaths.length; i++) {
 		const pluginData = {};
@@ -64,6 +65,7 @@ const run = async () => {
 				logger : require("./modules/lib/logger").instance(p),
 				webApiInstaller : webApiInstaller,
 				pageProcessInstaller : pageProcessInstaller,
+				taskInstaller : taskInstaller,
 				event : event,
 				plugins : pluginPaths,
 				dir :  moduleDir +"/modules/plugins/"+ p
@@ -77,7 +79,11 @@ const run = async () => {
 
 	webApp.listen(configure.webserver.port, () => logger.info('Web App Server Listening on port 3000'));
 	logger.info("application start");
-	const pooling = scheduler.instance(new application.TaskResolver(context, pageProcessInvokers));
+
+	const pooling = scheduler.instance(new application.CombineTaskResolver([
+		new application.CrawlerTaskResolver(context, pageProcessInvokers),
+		taskInstaller.getTaskResolver()
+	]));
 
 	webApp.get('/system/shutdown', (req, res) => {
 		event.raise("system.shutdown", plugins);
