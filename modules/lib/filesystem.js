@@ -7,6 +7,7 @@ module.exports = {
 		stat : util.promisify(fs.stat),
 		readFile : util.promisify(fs.readFile),
 		writeFile: util.promisify(fs.writeFile),
+		appendFile: util.promisify(fs.appendFile),
 		remove : util.promisify(fs.remove),
 		mkdirs : util.promisify(fs.mkdirs),
 		copy : util.promisify(fs.copy),
