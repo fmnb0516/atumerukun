@@ -429,6 +429,10 @@ class Repository {
 			return true;
 		});
 	};
+
+	getDB() {
+		return this.db;
+	};
 };
 
 class PersistenceContainer {
