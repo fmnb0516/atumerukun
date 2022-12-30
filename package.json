@@ -21,7 +21,7 @@
     "sqlite3": "^4.0.9"
   },
   "devDependencies": {
-    "mocha": "^6.1.4"
+    "mocha": "^10.2.0"
   },
   "bin": {
     "atumerukun": "index.js"
